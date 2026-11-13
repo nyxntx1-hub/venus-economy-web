@@ -8,12 +8,13 @@
 * { box-sizing: border-box; }
 body { font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; background: #0b1021; color: #e2e8f0; margin: 0; padding: 20px; }
 .container { max-width: 980px; margin: 0 auto; }
-h1 { color: #38bdf8; border-bottom: 2px solid #38bdf8; padding-bottom: 8px; margin-top: 0; }
+h1 { color: #38bdf8; border-bottom: 2px solid #38bdf8; padding-bottom: 8px; margin-top: 0; font-size: 1.5rem; }
 .card { background: #16213e; border-radius: 10px; padding: 16px; margin: 14px 0; box-shadow: 0 4px 12px rgba(0,0,0,.35); }
 .card h2 { color: #22d3ee; margin-top: 0; font-size: 1.05rem; border-bottom: 1px solid #2d3a59; padding-bottom: 6px; }
 label { display: block; margin: 7px 0 3px; font-size: .85rem; color: #94a3b8; }
 input, select { width: 100%; padding: 7px 9px; background: #0b1021; border: 1px solid #334155; border-radius: 6px; color: #f1f5f9; font-size: .9rem; margin-bottom: 9px; }
 input:focus { outline: none; border-color: #38bdf8; }
+input[type=checkbox] { width: auto; margin: 0; }
 button { background: #38bdf8; color: #0b1021; border: none; padding: 8px 16px; border-radius: 6px; font-weight: 700; cursor: pointer; margin: 4px 4px 4px 0; }
 button:hover { background: #7dd3fc; }
 button.sec { background: #334155; color: #f1f5f9; }
@@ -26,18 +27,18 @@ button.save { background: #22c55e; color: #fff; font-size: 1.1rem; padding: 12px
 .status { margin: 8px 0; padding: 8px 12px; border-radius: 6px; font-size: .85rem; display: none; }
 .status.ok { background: #064e3b; color: #86efac; border: 1px solid #10b981; display: block; }
 .status.err { background: #450a0a; color: #fecaca; border: 1px solid #ef4444; display: block; }
+.status.wait { background: #1e3a5f; color: #bae6fd; border: 1px solid #38bdf8; display: block; }
 .row { display: flex; gap: 12px; flex-wrap: wrap; }
 .col { flex: 1; min-width: 220px; }
 .list { display: flex; gap: 8px; align-items: center; margin: 6px 0; }
 .list input { flex: 1; margin: 0; }
-.apirow { display: flex; gap: 8px; align-items: center; margin-bottom: 10px; }
-.apirow input { flex: 1; }
-table { width: 100%; border-collapse: collapse; margin-top: 8px; }
-th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid #2d3a59; font-size: .85rem; }
-th { color: #94a3b8; }
-.pwd { display: flex; gap: 8px; align-items: center; }
-.pwd input { flex: 1; margin: 0; }
+.apirow { display: flex; gap: 8px; align-items: center; margin-bottom: 10px; flex-wrap: wrap; }
+.apirow input { flex: 1; min-width: 240px; margin: 0; }
 .events { font-family: ui-monospace, SFMono-Regular, monospace; font-size: .8rem; color: #94a3b8; max-height: 220px; overflow-y: auto; }
+.hint { font-size: .78rem; color: #64748b; margin: 4px 0 8px; }
+.dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; background: #64748b; margin-right: 6px; }
+.dot.on { background: #22c55e; box-shadow: 0 0 8px #22c55e; }
+.dot.off { background: #ef4444; }
 </style>
 </head>
 <body>
@@ -47,9 +48,14 @@ th { color: #94a3b8; }
 
   <div class="card">
     <div class="apirow">
-      <input type="text" id="apiUrl" placeholder="https://script.google.com/macros/s/.../exec" value="https://script.google.com/macros/s/AKfycby6CKgYvO9TgpBcpqTG3ISiuTb6apoRLvCJSmW0oDf1Jk8OZTGaPQO6wH4P1zH5-y57/exec">
-      <input type="password" id="adminPwd" placeholder="Contraseña" value="venus_admin_2026">
-      <button class="sec" onclick="loadConfig()">Cargar desde la nube</button>
+      <input type="text" id="apiUrl" placeholder="https://script.google.com/macros/s/.../exec"
+             value="https://script.google.com/macros/s/AKfycby6CKgYvO9TgpBcpqTG3ISiuTb6apoRLvCJSmW0oDf1Jk8OZTGaPQO6wH4P1zH5-y57/exec">
+      <input type="password" id="adminPwd" placeholder="Contraseña" value="venus_admin_2026" style="max-width:200px;">
+    </div>
+    <div class="apirow">
+      <button class="sec" onclick="loadConfig()">⬇️ Cargar desde la nube</button>
+      <button class="sec" onclick="probar()">🔌 Probar conexión</button>
+      <span id="conn" style="font-size:.85rem;color:#94a3b8;"><span class="dot"></span>sin comprobar</span>
     </div>
     <div id="statusLoad" class="status"></div>
   </div>
@@ -62,16 +68,21 @@ th { color: #94a3b8; }
       <div class="col">
         <label>Nombres de jugadores (VRChat displayName)</label>
         <div id="lbNames"></div>
-        <button class="add" onclick="addItem('lbNames','lbNameIn')">+ Agregar nombre</button>
-        <input type="text" id="lbNameIn" placeholder="Nombre..." style="display:none">
+        <div class="list">
+          <input type="text" id="lbNameIn" placeholder="Nombre exacto en VRChat...">
+          <button class="add" onclick="addItem('lbNames','lbNameIn')">+</button>
+        </div>
       </div>
       <div class="col">
         <label>Montos iniciales</label>
         <div id="lbAmts"></div>
-        <button class="add" onclick="addItem('lbAmts','lbAmtIn')">+ Agregar monto</button>
-        <input type="number" id="lbAmtIn" placeholder="0" style="display:none">
+        <div class="list">
+          <input type="number" id="lbAmtIn" placeholder="0">
+          <button class="add" onclick="addItem('lbAmts','lbAmtIn')">+</button>
+        </div>
       </div>
     </div>
+    <div class="hint">Los nombres y los montos se emparejan por orden (1º nombre ↔ 1º monto).</div>
   </div>
 
   <div class="card">
@@ -80,7 +91,7 @@ th { color: #94a3b8; }
       <div class="col"><label>Saldo inicial</label><input type="number" id="ecStart" value="150"></div>
       <div class="col"><label>Reset cada (horas)</label><input type="number" id="ecReset" value="2" step="0.5"></div>
       <div class="col"><label>Máx. por transferencia</label><input type="number" id="ecMax" value="1000"></div>
-      <div class="col"><label>Versión líderboard (sube para reiniciar ranks)</label><input type="number" id="ecVer" value="1"></div>
+      <div class="col"><label>Versión líderboard (subir = reiniciar ranking)</label><input type="number" id="ecVer" value="1"></div>
     </div>
   </div>
 
@@ -89,17 +100,23 @@ th { color: #94a3b8; }
     <div class="row"><div class="col"><label>Monto del regalo</label><input type="number" id="giftAmt" value="500"></div></div>
     <label>Nombres autorizados</label>
     <div id="giftWl"></div>
-    <button class="add" onclick="addItem('giftWl','giftWlIn')">+ Agregar a whitelist</button>
-    <input type="text" id="giftWlIn" placeholder="Nombre VRChat..." style="display:none">
+    <div class="list">
+      <input type="text" id="giftWlIn" placeholder="Nombre VRChat...">
+      <button class="add" onclick="addItem('giftWl','giftWlIn')">+</button>
+    </div>
   </div>
 
   <div class="card">
     <h2>💸 Lanzador de Dinero (Permisos)</h2>
-    <label style="display:flex;align-items:center;gap:6px;"><input type="checkbox" id="throwEveryone" checked> Permitir a todos lanzar dinero</label>
+    <label style="display:flex;align-items:center;gap:6px;">
+      <input type="checkbox" id="throwEveryone" checked> Permitir a todos lanzar dinero
+    </label>
     <label>Whitelist de lanzadores</label>
     <div id="throwWl"></div>
-    <button class="add" onclick="addItem('throwWl','throwWlIn')">+ Agregar lanzador</button>
-    <input type="text" id="throwWlIn" placeholder="Nombre VRChat..." style="display:none">
+    <div class="list">
+      <input type="text" id="throwWlIn" placeholder="Nombre VRChat...">
+      <button class="add" onclick="addItem('throwWl','throwWlIn')">+</button>
+    </div>
   </div>
 
   <div class="card">
@@ -116,159 +133,360 @@ th { color: #94a3b8; }
 
   <div class="card" style="margin-top:20px;">
     <h2>📊 Eventos del mundo</h2>
-    <div id="eventsList" class="events">Cargando...</div>
+    <div id="eventsList" class="events">—</div>
+  </div>
+
+  <div class="card">
+    <h2>🧪 Diagnóstico</h2>
+    <div id="diag" class="events">Pulsa "Probar conexión".</div>
   </div>
 </div>
 
 <script>
-let API_URL = document.getElementById('apiUrl').value;
-let PWD = document.getElementById('adminPwd').value;
-document.getElementById('apiUrl').oninput = e => API_URL = e.target.value;
-document.getElementById('adminPwd').oninput = e => PWD = e.target.value;
+'use strict';
 
-function show(id, msg, ok){
-  const el = document.getElementById(id);
+var $ = function (id) { return document.getElementById(id); };
+
+var API_URL = $('apiUrl').value.trim();
+var PWD = $('adminPwd').value;
+
+$('apiUrl').addEventListener('input', function (e) { API_URL = e.target.value.trim(); });
+$('adminPwd').addEventListener('input', function (e) { PWD = e.target.value; });
+
+function show(id, msg, kind) {
+  var el = $(id);
   el.textContent = msg;
-  el.className = 'status ' + (ok ? 'ok' : 'err');
-  el.style.display = 'block';
+  el.className = 'status ' + (kind || 'ok');
 }
 
-// Proxy CORS gratuito y funcional
-const CORS_PROXY = 'https://corsproxy.io/?url=';
-
-async function api(params){
-  const qs = new URLSearchParams({pwd:PWD, ...params}).toString();
-  const fullUrl = API_URL + '?' + qs;
-  const proxyUrl = CORS_PROXY + encodeURIComponent(fullUrl);
-  const r = await fetch(proxyUrl);
-  if (!r.ok) throw new Error('Proxy error: ' + r.status);
-  return await r.json();
+function log(text) {
+  var el = $('diag');
+  if (el.textContent === 'Pulsa "Probar conexión".') el.textContent = '';
+  el.textContent = text + '\n' + el.textContent;
 }
 
-async function loadConfig(){
-  show('statusLoad','Cargando...',true);
-  try{
-    const d = await api({action:'get_config'});
-    if(!d.ok) throw new Error(d.error||'Error');
-    document.getElementById('lbTitle').value = d.leaderboardTitle||'';
-    document.getElementById('lbRefresh').value = d.refreshIntervalSeconds||'10';
-    renderList('lbNames', d.trackedDisplayNames?d.trackedDisplayNames.split('|'):[]);
-    renderList('lbAmts', d.initialAmounts?d.initialAmounts.split('|'):[]);
-    document.getElementById('ecStart').value = d.startingBalance||'150';
-    document.getElementById('ecReset').value = d.resetIntervalHours||'2';
-    document.getElementById('ecMax').value = d.maxTransferAmount||'1000';
-    document.getElementById('ecVer').value = d.leaderboardDataVersion||'1';
-    document.getElementById('giftAmt').value = d.giftAmount||'500';
-    renderList('giftWl', d.gift_wl?d.gift_wl.split('|'):[]);
-    document.getElementById('throwEveryone').checked = d.throwerAllowEveryone!=='false';
-    renderList('throwWl', d.throw_wl?d.throw_wl.split('|'):[]);
-    renderPayments(d.pay_labels?d.pay_labels.split('|'):[], d.pay_recips?d.pay_recips.split('|'):[], d.pay_amts?d.pay_amts.split('|'):[]);
-    loadEvents();
-    show('statusLoad','✅ Config cargada',true);
-  }catch(e){ show('statusLoad','❌ '+e.message,false); }
+function setConn(ok, text) {
+  var el = $('conn');
+  el.innerHTML = '<span class="dot ' + (ok ? 'on' : 'off') + '"></span>' + text;
 }
 
-function renderList(id, items){
-  const c = document.getElementById(id);
-  c.innerHTML = '';
-  items.forEach(v => {
-    const div = document.createElement('div');
-    div.className='list';
-    div.innerHTML = `<input type="text" value="${esc(v)}"><button class="del" onclick="this.parentElement.remove()">×</button>`;
-    c.appendChild(div);
+/* =========================================================================
+   LLAMADAS AL BACKEND SIN PROXY (JSONP)
+   Google Apps Script no permite CORS, pero una etiqueta <script> no lo necesita.
+   ========================================================================= */
+
+function apiGet(params) {
+  return new Promise(function (resolve, reject) {
+    if (!API_URL || API_URL.indexOf('/exec') === -1) {
+      reject(new Error('La URL del backend debe terminar en /exec'));
+      return;
+    }
+
+    var cb = '__venus_cb_' + Math.random().toString(36).slice(2) + Date.now().toString(36);
+    var script = document.createElement('script');
+    var finished = false;
+
+    var timer = setTimeout(function () {
+      fail('Sin respuesta en 15 s. Revisa que el despliegue tenga acceso "Cualquiera" y que el código v2 (JSONP) esté pegado y redesplegado.');
+    }, 15000);
+
+    function clean() {
+      clearTimeout(timer);
+      try { delete window[cb]; } catch (e) { window[cb] = undefined; }
+      if (script.parentNode) script.parentNode.removeChild(script);
+    }
+
+    function fail(msg) {
+      if (finished) return;
+      finished = true;
+      clean();
+      reject(new Error(msg));
+    }
+
+    window[cb] = function (data) {
+      if (finished) return;
+      finished = true;
+      clean();
+      resolve(data);
+    };
+
+    script.onerror = function () {
+      fail('No se pudo cargar el backend. Comprueba la URL (/exec) y el permiso "Cualquiera".');
+    };
+
+    var all = {};
+    for (var k in params) all[k] = params[k];
+    all.pwd = PWD;
+    all.callback = cb;
+    all._t = Date.now();
+
+    script.src = API_URL + (API_URL.indexOf('?') >= 0 ? '&' : '?') + new URLSearchParams(all).toString();
+    script.async = true;
+    document.head.appendChild(script);
   });
 }
 
-function addItem(listId, inputId){
-  const c = document.getElementById(listId);
-  const inp = document.getElementById(inputId);
-  const v = inp.value.trim();
-  if(!v) return;
-  const div = document.createElement('div');
-  div.className='list';
-  div.innerHTML = `<input type="text" value="${esc(v)}"><button class="del" onclick="this.parentElement.remove()">×</button>`;
-  c.appendChild(div);
-  inp.value='';
+function apiPost(params) {
+  var all = {};
+  for (var k in params) all[k] = params[k];
+  all.pwd = PWD;
+
+  var controller = new AbortController();
+  var timer = setTimeout(function () { controller.abort(); }, 25000);
+
+  return fetch(API_URL, {
+    method: 'POST',
+    mode: 'no-cors',
+    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+    body: JSON.stringify(all),
+    signal: controller.signal
+  }).then(function () {
+    clearTimeout(timer);
+    return { ok: true };
+  }).catch(function (e) {
+    clearTimeout(timer);
+    throw new Error('No se pudo enviar (POST): ' + e.message);
+  });
 }
 
-function addPayment(){
-  const c = document.getElementById('payList');
-  const div = document.createElement('div');
-  div.className='list';
-  div.innerHTML = `<input type="text" placeholder="Etiqueta">
-                   <input type="text" placeholder="Destinatario">
-                   <input type="number" placeholder="Monto">
-                   <button class="del" onclick="this.parentElement.remove()">×</button>`;
-  c.appendChild(div);
+/* ========================================================================= */
+
+function probar() {
+  show('statusLoad', 'Probando conexión...', 'wait');
+  apiGet({ action: 'ping' }).then(function (d) {
+    if (d && d.ok) {
+      setConn(true, 'conectado · ' + (d.sheet || 'hoja OK'));
+      show('statusLoad', '✅ Conexión correcta con la hoja "' + (d.sheet || '') + '".', 'ok');
+      log('OK ping → ' + JSON.stringify(d));
+    } else {
+      setConn(false, 'respuesta inválida');
+      show('statusLoad', '❌ ' + ((d && d.error) || 'Respuesta inválida'), 'err');
+      log('FALLO ping → ' + JSON.stringify(d));
+    }
+  }).catch(function (e) {
+    setConn(false, 'sin conexión');
+    show('statusLoad', '❌ ' + e.message, 'err');
+    log('ERROR ping → ' + e.message);
+  });
 }
 
-function renderPayments(labels, recips, amts){
-  const c = document.getElementById('payList');
-  c.innerHTML='';
-  const n = Math.max(labels.length, recips.length, amts.length);
-  for(let i=0;i<n;i++){
-    const div = document.createElement('div');
-    div.className='list';
-    div.innerHTML = `<input type="text" value="${esc(labels[i]||'')}"><input type="text" value="${esc(recips[i]||'')}"><input type="number" value="${esc(amts[i]||'')}"><button class="del" onclick="this.parentElement.remove()">×</button>`;
+function loadConfig() {
+  show('statusLoad', 'Cargando...', 'wait');
+
+  apiGet({ action: 'get_config' }).then(function (d) {
+    if (!d || d.ok === false) throw new Error((d && d.error) || 'El backend devolvió un error');
+
+    $('lbTitle').value = d.leaderboardTitle || '';
+    $('lbRefresh').value = d.refreshIntervalSeconds || '10';
+    renderList('lbNames', d.trackedDisplayNames ? d.trackedDisplayNames.split('|') : []);
+    renderList('lbAmts', d.initialAmounts ? d.initialAmounts.split('|') : []);
+
+    $('ecStart').value = d.startingBalance || '150';
+    $('ecReset').value = d.resetIntervalHours || '2';
+    $('ecMax').value = d.maxTransferAmount || '1000';
+    $('ecVer').value = d.leaderboardDataVersion || '1';
+
+    $('giftAmt').value = d.giftAmount || '500';
+    renderList('giftWl', d.gift_wl ? d.gift_wl.split('|') : []);
+
+    $('throwEveryone').checked = String(d.throwerAllowEveryone) !== 'false';
+    renderList('throwWl', d.throw_wl ? d.throw_wl.split('|') : []);
+
+    renderPayments(
+      d.pay_labels ? d.pay_labels.split('|') : [],
+      d.pay_recips ? d.pay_recips.split('|') : [],
+      d.pay_amts ? d.pay_amts.split('|') : []
+    );
+
+    setConn(true, 'conectado');
+    show('statusLoad', '✅ Configuración cargada desde la nube.', 'ok');
+    log('OK get_config');
+    loadEvents();
+  }).catch(function (e) {
+    setConn(false, 'sin conexión');
+    show('statusLoad', '❌ ' + e.message, 'err');
+    log('ERROR get_config → ' + e.message);
+  });
+}
+
+function rowHtml(value, type) {
+  var div = document.createElement('div');
+  div.className = 'list';
+
+  var input = document.createElement('input');
+  input.type = type || 'text';
+  input.value = value;
+
+  var btn = document.createElement('button');
+  btn.className = 'del';
+  btn.textContent = '×';
+  btn.onclick = function () { div.remove(); };
+
+  div.appendChild(input);
+  div.appendChild(btn);
+  return div;
+}
+
+function renderList(id, items) {
+  var c = $(id);
+  c.innerHTML = '';
+  items.forEach(function (v) { if (v !== '') c.appendChild(rowHtml(v)); });
+}
+
+function addItem(listId, inputId) {
+  var inp = $(inputId);
+  var v = inp.value.trim();
+  if (!v) { inp.focus(); return; }
+  $(listId).appendChild(rowHtml(v));
+  inp.value = '';
+  inp.focus();
+}
+
+function addPayment() {
+  var div = document.createElement('div');
+  div.className = 'list';
+
+  var label = document.createElement('input');
+  label.type = 'text';
+  label.placeholder = 'Etiqueta (ej: VIP)';
+
+  var recip = document.createElement('input');
+  recip.type = 'text';
+  recip.placeholder = 'Destinatario';
+
+  var amt = document.createElement('input');
+  amt.type = 'number';
+  amt.placeholder = 'Monto';
+
+  var btn = document.createElement('button');
+  btn.className = 'del';
+  btn.textContent = '×';
+  btn.onclick = function () { div.remove(); };
+
+  div.appendChild(label);
+  div.appendChild(recip);
+  div.appendChild(amt);
+  div.appendChild(btn);
+  $('payList').appendChild(div);
+}
+
+function renderPayments(labels, recips, amts) {
+  var c = $('payList');
+  c.innerHTML = '';
+  var n = Math.max(labels.length, recips.length, amts.length);
+
+  for (var i = 0; i < n; i++) {
+    var div = document.createElement('div');
+    div.className = 'list';
+
+    var label = document.createElement('input');
+    label.type = 'text';
+    label.placeholder = 'Etiqueta';
+    label.value = labels[i] || '';
+
+    var recip = document.createElement('input');
+    recip.type = 'text';
+    recip.placeholder = 'Destinatario';
+    recip.value = recips[i] || '';
+
+    var amt = document.createElement('input');
+    amt.type = 'number';
+    amt.placeholder = 'Monto';
+    amt.value = (amts[i] === undefined ? '' : amts[i]);
+
+    var btn = document.createElement('button');
+    btn.className = 'del';
+    btn.textContent = '×';
+    btn.onclick = function () { div.remove(); };
+
+    div.appendChild(label);
+    div.appendChild(recip);
+    div.appendChild(amt);
+    div.appendChild(btn);
     c.appendChild(div);
   }
 }
 
-function esc(t){ const d=document.createElement('div'); d.textContent=t; return d.innerHTML; }
-
-function getList(id){
-  const c = document.getElementById(id);
-  const out=[];
-  c.querySelectorAll('input').forEach(i=>{ const v=i.value.trim(); if(v) out.push(v); });
+function getList(id) {
+  var out = [];
+  $(id).querySelectorAll('.list input').forEach(function (i) {
+    var v = i.value.trim();
+    if (v !== '') out.push(v);
+  });
   return out.join('|');
 }
 
-function getPayments(){
-  const c = document.getElementById('payList');
-  const rows=[];
-  c.querySelectorAll('.list').forEach(div=>{
-    const ins = div.querySelectorAll('input');
-    if(ins.length>=3 && ins[0].value.trim()) rows.push([ins[0].value.trim(), ins[1].value.trim(), ins[2].value||0]);
+function getPayments() {
+  var rows = [];
+  $('payList').querySelectorAll('.list').forEach(function (div) {
+    var ins = div.querySelectorAll('input');
+    if (ins.length >= 3 && ins[0].value.trim() !== '') {
+      rows.push([ins[0].value.trim(), ins[1].value.trim(), ins[2].value || '0']);
+    }
   });
   return rows;
 }
 
-async function saveConfig(){
-  const rows = getPayments();
-  const params = {
-    action:'set_config',
-    leaderboardTitle:document.getElementById('lbTitle').value,
-    refreshIntervalSeconds:document.getElementById('lbRefresh').value,
-    startingBalance:document.getElementById('ecStart').value,
-    resetIntervalHours:document.getElementById('ecReset').value,
-    maxTransferAmount:document.getElementById('ecMax').value,
-    leaderboardDataVersion:document.getElementById('ecVer').value,
-    giftAmount:document.getElementById('giftAmt').value,
-    throwerAllowEveryone:document.getElementById('throwEveryone').checked,
-    lb_names:getList('lbNames'),
-    lb_amounts:getList('lbAmts'),
-    gift_wl:getList('giftWl'),
-    throw_wl:getList('throwWl'),
-    pay_labels:rows.map(r=>r[0]).join('|'),
-    pay_recips:rows.map(r=>r[1]).join('|'),
-    pay_amts:rows.map(r=>r[2]).join('|')
+function saveConfig() {
+  var rows = getPayments();
+
+  var params = {
+    action: 'set_config',
+    leaderboardTitle: $('lbTitle').value,
+    refreshIntervalSeconds: $('lbRefresh').value,
+    startingBalance: $('ecStart').value,
+    resetIntervalHours: $('ecReset').value,
+    maxTransferAmount: $('ecMax').value,
+    leaderboardDataVersion: $('ecVer').value,
+    giftAmount: $('giftAmt').value,
+    throwerAllowEveryone: $('throwEveryone').checked ? 'true' : 'false',
+    lb_names: getList('lbNames'),
+    lb_amounts: getList('lbAmts'),
+    gift_wl: getList('giftWl'),
+    throw_wl: getList('throwWl'),
+    pay_labels: rows.map(function (r) { return r[0]; }).join('|'),
+    pay_recips: rows.map(function (r) { return r[1]; }).join('|'),
+    pay_amts: rows.map(function (r) { return r[2]; }).join('|')
   };
-  show('statusSave','Guardando...',true);
-  try{
-    const d = await api(params);
-    if(d.ok) show('statusSave','✅ Guardado. El mundo lo reflejará en el próximo ciclo (≤ 20s).',true);
-    else show('statusSave','❌ '+ (d.error||'Error'),false);
-  }catch(e){ show('statusSave','❌ '+e.message,false); }
+
+  show('statusSave', 'Guardando en la nube...', 'wait');
+
+  var probe = API_URL + '?' + new URLSearchParams(Object.assign({}, params, { pwd: PWD })).toString();
+
+  var peticion = (probe.length < 6000)
+    ? apiGet(params)
+    : apiPost(params);
+
+  peticion.then(function (d) {
+    if (d && d.ok === false) throw new Error(d.error || 'El backend rechazó los datos');
+    setConn(true, 'conectado');
+    show('statusSave', '✅ Guardado. El mundo lo aplicará en el próximo ciclo (≤ 20 s).', 'ok');
+    log('OK set_config');
+    setTimeout(loadConfig, 1200);
+  }).catch(function (e) {
+    show('statusSave', '❌ ' + e.message, 'err');
+    log('ERROR set_config → ' + e.message);
+  });
 }
 
-async function loadEvents(){
-  try{
-    const d = await api({action:'get_events'});
-    const el = document.getElementById('eventsList');
-    if(!d || !Array.isArray(d)){ el.textContent='Sin eventos'; return; }
-    const rec = d.slice(-10).reverse();
-    el.innerHTML = rec.map(e=>`<div>${new Date(e.timestamp).toLocaleString()} | ${e.player||'-'} | ${e.action||'-'} | $${e.amount||0} | ${e.detail||''}</div>`).join('') || 'Sin eventos';
-  }catch(e){ document.getElementById('eventsList').textContent='No se pudieron cargar eventos'; }
+function loadEvents() {
+  apiGet({ action: 'get_events' }).then(function (d) {
+    var el = $('eventsList');
+    var list = Array.isArray(d) ? d : (d && Array.isArray(d.events) ? d.events : null);
+
+    if (!list) { el.textContent = 'Sin eventos'; return; }
+    if (!list.length) { el.textContent = 'Aún no hay eventos registrados.'; return; }
+
+    el.innerHTML = '';
+    list.slice(-15).reverse().forEach(function (e) {
+      var line = document.createElement('div');
+      var ts = e.timestamp ? new Date(e.timestamp).toLocaleString() : '—';
+      line.textContent = ts + ' | ' + (e.player || '-') + ' | ' + (e.action || '-') + ' | $' + (e.amount || 0) + ' | ' + (e.detail || '');
+      el.appendChild(line);
+    });
+  }).catch(function (e) {
+    $('eventsList').textContent = 'No se pudieron cargar eventos: ' + e.message;
+  });
 }
 
 loadConfig();
