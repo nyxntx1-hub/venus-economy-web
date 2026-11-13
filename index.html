@@ -133,9 +133,14 @@ function show(id, msg, ok){
   el.style.display = 'block';
 }
 
+// Proxy CORS gratuito para evitar bloqueos del navegador
+const CORS_PROXY = 'https://api.allorigins.win/raw?url=';
+
 async function api(params){
   const qs = new URLSearchParams({pwd:PWD, ...params}).toString();
-  const r = await fetch(API_URL + '?' + qs);
+  const fullUrl = API_URL + '?' + qs;
+  const proxyUrl = CORS_PROXY + encodeURIComponent(fullUrl);
+  const r = await fetch(proxyUrl);
   return await r.json();
 }
 
