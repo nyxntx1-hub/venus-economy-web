@@ -133,14 +133,15 @@ function show(id, msg, ok){
   el.style.display = 'block';
 }
 
-// Proxy CORS gratuito para evitar bloqueos del navegador
-const CORS_PROXY = 'https://api.allorigins.win/raw?url=';
+// Proxy CORS gratuito (funciona con Google Apps Script)
+const CORS_PROXY = 'https://corsproxy.io/?url=';
 
 async function api(params){
   const qs = new URLSearchParams({pwd:PWD, ...params}).toString();
   const fullUrl = API_URL + '?' + qs;
   const proxyUrl = CORS_PROXY + encodeURIComponent(fullUrl);
   const r = await fetch(proxyUrl);
+  if (!r.ok) throw new Error('Proxy error: ' + r.status);
   return await r.json();
 }
 
