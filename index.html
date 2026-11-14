@@ -13,7 +13,7 @@ h1 { color: #38bdf8; border-bottom: 2px solid #38bdf8; padding-bottom: 8px; marg
 .card h2 { color: #22d3ee; margin-top: 0; font-size: 1.05rem; border-bottom: 1px solid #2d3a59; padding-bottom: 6px; }
 label { display: block; margin: 7px 0 3px; font-size: .85rem; color: #94a3b8; }
 input, select { width: 100%; padding: 7px 9px; background: #0b1021; border: 1px solid #334155; border-radius: 6px; color: #f1f5f9; font-size: .9rem; margin-bottom: 9px; }
-input:focus { outline: none; border-color: #38bdf8; }
+input:focus, select:focus { outline: none; border-color: #38bdf8; }
 input[type=checkbox] { width: auto; margin: 0; }
 button { background: #38bdf8; color: #0b1021; border: none; padding: 8px 16px; border-radius: 6px; font-weight: 700; cursor: pointer; margin: 4px 4px 4px 0; }
 button:hover { background: #7dd3fc; }
@@ -21,17 +21,20 @@ button.sec { background: #334155; color: #f1f5f9; }
 button.sec:hover { background: #475569; }
 button.add { background: #10b981; color: #fff; }
 button.add:hover { background: #059669; }
+button.small { font-size: .8rem; padding: 4px 10px; }
 button.del { background: #ef4444; color: #fff; font-size: .8rem; padding: 4px 8px; }
 button.del:hover { background: #dc2626; }
 button.save { background: #22c55e; color: #fff; font-size: 1.1rem; padding: 12px 28px; }
-.status { margin: 8px 0; padding: 8px 12px; border-radius: 6px; font-size: .85rem; display: none; }
+.status { margin: 8px 0; padding: 8px 12px; border-radius: 6px; font-size: .85rem; display: none; white-space: pre-line; }
 .status.ok { background: #064e3b; color: #86efac; border: 1px solid #10b981; display: block; }
 .status.err { background: #450a0a; color: #fecaca; border: 1px solid #ef4444; display: block; }
 .status.wait { background: #1e3a5f; color: #bae6fd; border: 1px solid #38bdf8; display: block; }
 .row { display: flex; gap: 12px; flex-wrap: wrap; }
 .col { flex: 1; min-width: 220px; }
 .list { display: flex; gap: 8px; align-items: center; margin: 6px 0; }
-.list input { flex: 1; margin: 0; }
+.list input, .list select { flex: 1; margin: 0; }
+.list input.num { flex: 0 0 110px; }
+.list input.qty { flex: 0 0 70px; }
 .apirow { display: flex; gap: 8px; align-items: center; margin-bottom: 10px; flex-wrap: wrap; }
 .apirow input { flex: 1; min-width: 240px; margin: 0; }
 .events { font-family: ui-monospace, SFMono-Regular, monospace; font-size: .8rem; color: #94a3b8; max-height: 220px; overflow-y: auto; }
@@ -39,6 +42,19 @@ button.save { background: #22c55e; color: #fff; font-size: 1.1rem; padding: 12px
 .dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; background: #64748b; margin-right: 6px; }
 .dot.on { background: #22c55e; box-shadow: 0 0 8px #22c55e; }
 .dot.off { background: #ef4444; }
+.block { border: 1px solid #2d3a59; border-radius: 8px; padding: 10px 12px; margin: 10px 0; background: #111a33; }
+.block .head { display: flex; gap: 8px; align-items: center; }
+.block .head input { margin: 0; font-weight: 700; }
+.block .head .title { flex: 1; font-weight: 700; color: #f1f5f9; }
+.block .head button { white-space: nowrap; }
+.list.tagrow { flex-wrap: wrap; }
+.list.tagrow .tplayer { flex: 1 1 180px; min-width: 150px; }
+.list.tagrow .timage { flex: 1 1 150px; min-width: 130px; }
+.list.tagrow .ttext { flex: 1 1 120px; min-width: 110px; }
+.list.tagrow .tprev { height: 34px; width: auto; max-width: 92px; border-radius: 4px; border: 1px solid #334155; object-fit: cover; }
+.block .sub { margin-left: 14px; }
+.tag { font-size: .75rem; color: #94a3b8; white-space: nowrap; }
+.warn { color: #fbbf24; }
 </style>
 </head>
 <body>
@@ -50,20 +66,23 @@ button.save { background: #22c55e; color: #fff; font-size: 1.1rem; padding: 12px
     <div class="apirow">
       <input type="text" id="apiUrl" placeholder="https://script.google.com/macros/s/.../exec"
              value="https://script.google.com/macros/s/AKfycby6CKgYvO9TgpBcpqTG3ISiuTb6apoRLvCJSmW0oDf1Jk8OZTGaPQO6wH4P1zH5-y57/exec">
-      <input type="password" id="adminPwd" placeholder="Contraseña" value="venus_admin_2026" style="max-width:200px;">
+      <input type="password" id="adminPwd" placeholder="Contraseña" autocomplete="current-password" style="max-width:200px;">
     </div>
     <div class="apirow">
       <button class="sec" onclick="loadConfig()">⬇️ Cargar desde la nube</button>
       <button class="sec" onclick="probar()">🔌 Probar conexión</button>
+      <button class="sec" onclick="$('importFile').click()">📥 Importar datos de Venus (.json)</button>
+      <input type="file" id="importFile" accept=".json,application/json" style="display:none" onchange="importVenus(event)">
       <span id="conn" style="font-size:.85rem;color:#94a3b8;"><span class="dot"></span>sin comprobar</span>
     </div>
+    <div class="hint">Escribe la contraseña y pulsa «Cargar desde la nube». «Importar datos de Venus» rellena acompañantes y carteles con el archivo <b>venus_datos_panel.json</b> que se genera en Unity; después pulsa «Guardar todo en la nube».</div>
     <div id="statusLoad" class="status"></div>
   </div>
 
   <div class="card">
     <h2>👑 Líderboard</h2>
-    <label>Título</label><input type="text" id="lbTitle" value="👑 VIP LEADERBOARD 👑">
-    <label>Actualizar cada (segundos, mínimo 5)</label><input type="number" id="lbRefresh" value="10" min="5">
+    <label>Título (se muestra dentro de la lista; vacío = sin título)</label><input type="text" id="lbTitle" value="">
+    <label>Actualizar cada (segundos, mínimo 5)</label><input type="number" id="lbRefresh" value="3" min="3">
     <div class="row">
       <div class="col">
         <label>Nombres de jugadores (VRChat displayName)</label>
@@ -82,17 +101,34 @@ button.save { background: #22c55e; color: #fff; font-size: 1.1rem; padding: 12px
         </div>
       </div>
     </div>
-    <div class="hint">Los nombres y los montos se emparejan por orden (1º nombre ↔ 1º monto).</div>
+    <div class="hint">Los nombres y los montos se emparejan por orden (1º nombre ↔ 1º monto). En el mundo se muestra monto inicial + lo ganado.</div>
   </div>
 
   <div class="card">
     <h2>💰 Economía</h2>
     <div class="row">
-      <div class="col"><label>Saldo inicial</label><input type="number" id="ecStart" value="150"></div>
-      <div class="col"><label>Reset cada (horas)</label><input type="number" id="ecReset" value="2" step="0.5"></div>
-      <div class="col"><label>Máx. por transferencia</label><input type="number" id="ecMax" value="1000"></div>
+      <div class="col"><label>Saldo inicial</label><input type="number" id="ecStart" value="500"></div>
+      <div class="col"><label>Reset cada (horas)</label><input type="number" id="ecReset" value="6" step="0.5"></div>
+      <div class="col"><label>Máx. por transferencia</label><input type="number" id="ecMax" value="5000"></div>
       <div class="col"><label>Versión líderboard (subir = reiniciar ranking)</label><input type="number" id="ecVer" value="1"></div>
     </div>
+  </div>
+
+  <div class="card">
+    <h2>👥 Acompañantes y servicios (Kiosko)</h2>
+    <div class="hint">Cada acompañante con su nombre <b>exacto de VRChat</b> (así se le paga). Máximo 25 acompañantes y 25 servicios por acompañante (botones del kiosko).</div>
+    <div id="staffList"></div>
+    <button class="add" onclick="addPerson('', [])">+ Agregar acompañante</button>
+    <span id="staffCount" class="tag"></span>
+  </div>
+
+  <div class="card">
+    <h2>🏷️ Carteles sobre la cabeza (Name Tags)</h2>
+    <div class="hint">Persona (nombre exacto de VRChat, sin importar mayúsculas), imagen del cartel y texto opcional. Máximo <span id="tagMax">80</span> carteles.<br>
+      <b>Imágenes nuevas sin volver a subir el mundo:</b> sube el archivo al repositorio como <code>tags/web01.png</code> … <code>tags/web20.png</code> (PNG o JPG, ideal 800×300, máx. 2048×2048) y elige «web01»… aquí. El mundo descarga 1 imagen cada 5 s; si reemplazas un archivo, se verá en la próxima instancia.</div>
+    <div id="tagList"></div>
+    <button class="add" onclick="addTag('', 'Staff', '')">+ Agregar persona</button>
+    <span id="tagCount" class="tag"></span>
   </div>
 
   <div class="card">
@@ -109,20 +145,14 @@ button.save { background: #22c55e; color: #fff; font-size: 1.1rem; padding: 12px
   <div class="card">
     <h2>💸 Lanzador de Dinero (Permisos)</h2>
     <label style="display:flex;align-items:center;gap:6px;">
-      <input type="checkbox" id="throwEveryone" checked> Permitir a todos lanzar dinero
+      <input type="checkbox" id="throwEveryone"> Permitir a todos lanzar dinero
     </label>
-    <label>Whitelist de lanzadores</label>
+    <label>Whitelist de lanzadores (máximo 20: uno por pool de billetes)</label>
     <div id="throwWl"></div>
     <div class="list">
       <input type="text" id="throwWlIn" placeholder="Nombre VRChat...">
       <button class="add" onclick="addItem('throwWl','throwWlIn')">+</button>
     </div>
-  </div>
-
-  <div class="card">
-    <h2>💳 Opciones de Pago (Kiosko)</h2>
-    <div id="payList"></div>
-    <button class="add" onclick="addPayment()">+ Agregar opción de pago</button>
   </div>
 
   <div style="text-align:center;">
@@ -153,6 +183,21 @@ var PWD = $('adminPwd').value;
 $('apiUrl').addEventListener('input', function (e) { API_URL = e.target.value.trim(); });
 $('adminPwd').addEventListener('input', function (e) { PWD = e.target.value; });
 
+var KIOSK_SLOTS = 25;
+var THROWER_POOLS = 20;
+
+// Imágenes de cartel que trae el mundo (se actualizan con «Importar datos de Venus»)
+var TAG_IMAGES = ['DefaultBanner', 'ELIXIR_7', 'ELIXIR_10', 'ELIXIR_11', 'ELIXIR_12', 'ELIXIR_13', 'ELIXIR_33', 'ELIXIR_34',
+  'ELIXIR_35', 'ELIXIR_36', 'ELIXIR_37', 'ELIXIR_38', 'ELIXIR_40', 'ELIXIR_41', 'ELIXIR_42', 'ELIXIR_43', 'Madame', 'Staff',
+  'Venus Staff', 'VIP'];
+// Imágenes web: archivos tags/web01.png … tags/web20.png de este mismo repositorio
+var TAG_WEB_COUNT = 20;
+for (var wi = 1; wi <= TAG_WEB_COUNT; wi++) TAG_IMAGES.push('web' + (wi < 10 ? '0' : '') + wi);
+var TAG_SLOTS = 80;
+
+function isWebImage(name) { return /^web\d\d$/i.test(String(name || '')); }
+function webImageUrl(name) { return 'tags/' + String(name).toLowerCase() + '.png'; }
+
 function show(id, msg, kind) {
   var el = $(id);
   el.textContent = msg;
@@ -166,13 +211,19 @@ function log(text) {
 }
 
 function setConn(ok, text) {
-  var el = $('conn');
-  el.innerHTML = '<span class="dot ' + (ok ? 'on' : 'off') + '"></span>' + text;
+  $('conn').innerHTML = '<span class="dot ' + (ok ? 'on' : 'off') + '"></span>' + text;
 }
+
+function el(tag, props) {
+  var e = document.createElement(tag);
+  for (var k in (props || {})) e[k] = props[k];
+  return e;
+}
+
+function splitList(s) { return s ? String(s).split('|') : []; }
 
 /* =========================================================================
    LLAMADAS AL BACKEND SIN PROXY (JSONP)
-   Google Apps Script no permite CORS, pero una etiqueta <script> no lo necesita.
    ========================================================================= */
 
 function apiGet(params) {
@@ -187,7 +238,7 @@ function apiGet(params) {
     var finished = false;
 
     var timer = setTimeout(function () {
-      fail('Sin respuesta en 15 s. Revisa que el despliegue tenga acceso "Cualquiera" y que el código v2 (JSONP) esté pegado y redesplegado.');
+      fail('Sin respuesta en 15 s. Revisa que el despliegue tenga acceso "Cualquiera" y que el código v3 esté pegado y redesplegado.');
     }, 15000);
 
     function clean() {
@@ -242,7 +293,7 @@ function apiPost(params) {
     signal: controller.signal
   }).then(function () {
     clearTimeout(timer);
-    return { ok: true };
+    return { ok: true, unverified: true };
   }).catch(function (e) {
     clearTimeout(timer);
     throw new Error('No se pudo enviar (POST): ' + e.message);
@@ -256,7 +307,7 @@ function probar() {
   apiGet({ action: 'ping' }).then(function (d) {
     if (d && d.ok) {
       setConn(true, 'conectado · ' + (d.sheet || 'hoja OK'));
-      show('statusLoad', '✅ Conexión correcta con la hoja "' + (d.sheet || '') + '".', 'ok');
+      show('statusLoad', '✅ Conexión correcta con la hoja "' + (d.sheet || '') + '"' + (d.gist ? ' · Gist configurado' : ' · ⚠️ falta configurar el Gist'), 'ok');
       log('OK ping → ' + JSON.stringify(d));
     } else {
       setConn(false, 'respuesta inválida');
@@ -271,35 +322,36 @@ function probar() {
 }
 
 function loadConfig() {
+  if (!PWD) { show('statusLoad', 'Escribe la contraseña primero.', 'err'); $('adminPwd').focus(); return; }
   show('statusLoad', 'Cargando...', 'wait');
 
   apiGet({ action: 'get_config' }).then(function (d) {
     if (!d || d.ok === false) throw new Error((d && d.error) || 'El backend devolvió un error');
 
     $('lbTitle').value = d.leaderboardTitle || '';
-    $('lbRefresh').value = d.refreshIntervalSeconds || '10';
-    renderList('lbNames', d.trackedDisplayNames ? d.trackedDisplayNames.split('|') : []);
-    renderList('lbAmts', d.initialAmounts ? d.initialAmounts.split('|') : []);
+    $('lbRefresh').value = d.refreshIntervalSeconds || '3';
+    renderList('lbNames', splitList(d.trackedDisplayNames));
+    renderList('lbAmts', splitList(d.initialAmounts));
 
-    $('ecStart').value = d.startingBalance || '150';
-    $('ecReset').value = d.resetIntervalHours || '2';
-    $('ecMax').value = d.maxTransferAmount || '1000';
+    $('ecStart').value = d.startingBalance || '500';
+    $('ecReset').value = d.resetIntervalHours || '6';
+    $('ecMax').value = d.maxTransferAmount || '5000';
     $('ecVer').value = d.leaderboardDataVersion || '1';
 
     $('giftAmt').value = d.giftAmount || '500';
-    renderList('giftWl', d.gift_wl ? d.gift_wl.split('|') : []);
+    renderList('giftWl', splitList(d.gift_wl));
 
-    $('throwEveryone').checked = String(d.throwerAllowEveryone) !== 'false';
-    renderList('throwWl', d.throw_wl ? d.throw_wl.split('|') : []);
+    $('throwEveryone').checked = String(d.throwerAllowEveryone) === 'true';
+    renderList('throwWl', splitList(d.throw_wl));
 
-    renderPayments(
-      d.pay_labels ? d.pay_labels.split('|') : [],
-      d.pay_recips ? d.pay_recips.split('|') : [],
-      d.pay_amts ? d.pay_amts.split('|') : []
-    );
+    renderStaff(splitList(d.pay_labels), splitList(d.pay_recips), splitList(d.pay_amts));
+    renderTags(splitList(d.tag_players), splitList(d.tag_images), splitList(d.tag_texts));
 
     setConn(true, 'conectado');
-    show('statusLoad', '✅ Configuración cargada desde la nube.', 'ok');
+    var extra = [];
+    if (!d.pay_labels) extra.push('no hay servicios guardados');
+    if (!d.tag_players) extra.push('no hay carteles guardados');
+    show('statusLoad', '✅ Configuración cargada desde la nube.' + (extra.length ? '\n⚠️ ' + extra.join(' y ') + ': usa «Importar datos de Venus» y luego «Guardar».' : ''), 'ok');
     log('OK get_config');
     loadEvents();
   }).catch(function (e) {
@@ -309,19 +361,13 @@ function loadConfig() {
   });
 }
 
+/* ---------------- Listas simples ---------------- */
+
 function rowHtml(value, type) {
-  var div = document.createElement('div');
-  div.className = 'list';
-
-  var input = document.createElement('input');
-  input.type = type || 'text';
-  input.value = value;
-
-  var btn = document.createElement('button');
-  btn.className = 'del';
-  btn.textContent = '×';
+  var div = el('div', { className: 'list' });
+  var input = el('input', { type: type || 'text', value: value });
+  var btn = el('button', { className: 'del', textContent: '×' });
   btn.onclick = function () { div.remove(); };
-
   div.appendChild(input);
   div.appendChild(btn);
   return div;
@@ -342,93 +388,204 @@ function addItem(listId, inputId) {
   inp.focus();
 }
 
-function addPayment() {
-  var div = document.createElement('div');
-  div.className = 'list';
-
-  var label = document.createElement('input');
-  label.type = 'text';
-  label.placeholder = 'Etiqueta (ej: VIP)';
-
-  var recip = document.createElement('input');
-  recip.type = 'text';
-  recip.placeholder = 'Destinatario';
-
-  var amt = document.createElement('input');
-  amt.type = 'number';
-  amt.placeholder = 'Monto';
-
-  var btn = document.createElement('button');
-  btn.className = 'del';
-  btn.textContent = '×';
-  btn.onclick = function () { div.remove(); };
-
-  div.appendChild(label);
-  div.appendChild(recip);
-  div.appendChild(amt);
-  div.appendChild(btn);
-  $('payList').appendChild(div);
-}
-
-function renderPayments(labels, recips, amts) {
-  var c = $('payList');
-  c.innerHTML = '';
-  var n = Math.max(labels.length, recips.length, amts.length);
-
-  for (var i = 0; i < n; i++) {
-    var div = document.createElement('div');
-    div.className = 'list';
-
-    var label = document.createElement('input');
-    label.type = 'text';
-    label.placeholder = 'Etiqueta';
-    label.value = labels[i] || '';
-
-    var recip = document.createElement('input');
-    recip.type = 'text';
-    recip.placeholder = 'Destinatario';
-    recip.value = recips[i] || '';
-
-    var amt = document.createElement('input');
-    amt.type = 'number';
-    amt.placeholder = 'Monto';
-    amt.value = (amts[i] === undefined ? '' : amts[i]);
-
-    var btn = document.createElement('button');
-    btn.className = 'del';
-    btn.textContent = '×';
-    btn.onclick = function () { div.remove(); };
-
-    div.appendChild(label);
-    div.appendChild(recip);
-    div.appendChild(amt);
-    div.appendChild(btn);
-    c.appendChild(div);
-  }
-}
-
 function getList(id) {
   var out = [];
   $(id).querySelectorAll('.list input').forEach(function (i) {
     var v = i.value.trim();
-    if (v !== '') out.push(v);
+    if (v !== '') out.push(v.replace(/\|/g, '/'));
   });
-  return out.join('|');
+  return out;
 }
 
-function getPayments() {
+/* ---------------- Acompañantes y servicios ---------------- */
+
+function serviceRow(label, amount) {
+  var div = el('div', { className: 'list svc' });
+  var l = el('input', { type: 'text', placeholder: 'Servicio (ej: Plática 10 min)', value: label || '' });
+  l.className = 'slabel';
+  var a = el('input', { type: 'number', placeholder: 'Precio', value: (amount === undefined || amount === null) ? '' : amount, min: 1 });
+  a.className = 'num samt';
+  var b = el('button', { className: 'del', textContent: '×' });
+  b.onclick = function () { div.remove(); updateStaffCount(); };
+  div.appendChild(l); div.appendChild(a); div.appendChild(b);
+  return div;
+}
+
+function addPerson(name, services) {
+  var block = el('div', { className: 'block person' });
+  var head = el('div', { className: 'head' });
+  var n = el('input', { type: 'text', placeholder: 'Nombre exacto en VRChat', value: name || '' });
+  n.className = 'pname';
+  var addS = el('button', { className: 'add small', textContent: '+ servicio' });
+  var del = el('button', { className: 'del', textContent: 'Quitar' });
+  var list = el('div', { className: 'sub' });
+  addS.onclick = function () { list.appendChild(serviceRow('', '')); updateStaffCount(); };
+  del.onclick = function () { if (confirm('¿Quitar a ' + (n.value || 'este acompañante') + ' y todos sus servicios?')) { block.remove(); updateStaffCount(); } };
+  head.appendChild(n); head.appendChild(addS); head.appendChild(del);
+  block.appendChild(head); block.appendChild(list);
+  (services || []).forEach(function (s) { list.appendChild(serviceRow(s[0], s[1])); });
+  if (!services || !services.length) list.appendChild(serviceRow('', ''));
+  $('staffList').appendChild(block);
+  updateStaffCount();
+}
+
+function renderStaff(labels, recips, amts) {
+  $('staffList').innerHTML = '';
+  var order = [], map = {};
+  var n = Math.max(labels.length, recips.length, amts.length);
+  for (var i = 0; i < n; i++) {
+    var r = (recips[i] || '').trim();
+    if (!r) continue;
+    var k = r.toLowerCase();
+    if (!map[k]) { map[k] = { name: r, services: [] }; order.push(k); }
+    map[k].services.push([labels[i] || '', amts[i] === undefined ? '' : amts[i]]);
+  }
+  order.forEach(function (k) { addPerson(map[k].name, map[k].services); });
+  updateStaffCount();
+}
+
+function getStaff() {
   var rows = [];
-  $('payList').querySelectorAll('.list').forEach(function (div) {
-    var ins = div.querySelectorAll('input');
-    if (ins.length >= 3 && ins[0].value.trim() !== '') {
-      rows.push([ins[0].value.trim(), ins[1].value.trim(), ins[2].value || '0']);
-    }
+  $('staffList').querySelectorAll('.person').forEach(function (p) {
+    var name = p.querySelector('.pname').value.trim().replace(/\|/g, '/');
+    p.querySelectorAll('.svc').forEach(function (s) {
+      var l = s.querySelector('.slabel').value.trim().replace(/\|/g, '/');
+      var a = s.querySelector('.samt').value;
+      if (name && l) rows.push([l, name, a || '0']);
+    });
   });
   return rows;
 }
 
+function updateStaffCount() {
+  var p = $('staffList').querySelectorAll('.person').length;
+  var s = $('staffList').querySelectorAll('.svc').length;
+  $('staffCount').textContent = p + ' acompañantes · ' + s + ' servicios';
+}
+
+/* ---------------- Carteles (Name Tags) ---------------- */
+
+function addTag(player, image, text) {
+  var div = el('div', { className: 'list tagrow' });
+  var p = el('input', { type: 'text', placeholder: 'Nombre exacto en VRChat', value: player || '' });
+  p.className = 'tplayer';
+  var sel = el('select');
+  sel.className = 'timage';
+  var found = false;
+  TAG_IMAGES.forEach(function (x) {
+    var o = el('option', { value: x, textContent: isWebImage(x) ? x + ' (web: tags/' + x.toLowerCase() + '.png)' : x });
+    if (String(x).toLowerCase() === String(image || '').toLowerCase()) { o.selected = true; found = true; }
+    sel.appendChild(o);
+  });
+  if (image && !found) { var o = el('option', { value: image, textContent: image + ' (no existe en el mundo)', selected: true }); sel.appendChild(o); }
+  var t = el('input', { type: 'text', placeholder: 'Texto (opcional)', value: text || '' });
+  t.className = 'ttext';
+  // Vista previa (solo imágenes web: están en este mismo repositorio)
+  var prev = el('img', { className: 'tprev', alt: '' });
+  function updPrev() {
+    if (isWebImage(sel.value)) {
+      prev.style.display = '';
+      prev.src = webImageUrl(sel.value) + '?v=' + Date.now();
+      prev.title = webImageUrl(sel.value);
+      prev.onerror = function () { prev.style.display = 'none'; prev.title = ''; };
+    } else { prev.style.display = 'none'; prev.removeAttribute('src'); }
+  }
+  sel.onchange = updPrev;
+  var b = el('button', { className: 'del', textContent: '×' });
+  b.onclick = function () { div.remove(); updateTagCount(); };
+  div.appendChild(p); div.appendChild(sel); div.appendChild(prev); div.appendChild(t); div.appendChild(b);
+  updPrev();
+  $('tagList').appendChild(div);
+  updateTagCount();
+}
+
+function renderTags(players, images, texts) {
+  $('tagList').innerHTML = '';
+  for (var i = 0; i < players.length; i++) if (players[i]) addTag(players[i], images[i] || 'Staff', texts[i] || '');
+  updateTagCount();
+}
+
+function getTags() {
+  var out = [];
+  $('tagList').querySelectorAll('.tagrow').forEach(function (r) {
+    var p = r.querySelector('.tplayer').value.trim().replace(/\|/g, '/');
+    if (!p) return;
+    out.push([p, r.querySelector('.timage').value.replace(/\|/g, '/'), r.querySelector('.ttext').value.trim().replace(/\|/g, '/')]);
+  });
+  return out;
+}
+
+function updateTagCount() {
+  var n = $('tagList').querySelectorAll('.tagrow').length;
+  $('tagCount').textContent = n + ' / ' + TAG_SLOTS + ' carteles';
+  $('tagMax').textContent = TAG_SLOTS;
+}
+
+/* ---------------- Importar datos de Venus ---------------- */
+
+function importVenus(ev) {
+  var f = ev.target.files && ev.target.files[0];
+  if (!f) return;
+  var reader = new FileReader();
+  reader.onload = function () {
+    try {
+      var d = JSON.parse(reader.result);
+      if (Array.isArray(d.tagImages) && d.tagImages.length) {
+        TAG_IMAGES = d.tagImages.slice();
+        for (var w = 1; w <= TAG_WEB_COUNT; w++) { var wn = 'web' + (w < 10 ? '0' : '') + w; if (TAG_IMAGES.indexOf(wn) < 0) TAG_IMAGES.push(wn); }
+      }
+      if (d.tagSlots) TAG_SLOTS = d.tagSlots;
+      var parts = [];
+      if (Array.isArray(d.nametags)) {
+        renderTags(d.nametags.map(function (x) { return x.player; }), d.nametags.map(function (x) { return x.image; }), d.nametags.map(function (x) { return x.text; }));
+        parts.push(d.nametags.length + ' carteles');
+      }
+      if (Array.isArray(d.services)) {
+        renderStaff(d.services.map(function (s) { return s.label; }), d.services.map(function (s) { return s.recipient; }), d.services.map(function (s) { return String(s.amount); }));
+        parts.push(d.services.length + ' servicios');
+      }
+      show('statusLoad', '✅ Importado: ' + parts.join(' y ') + '. Revisa y pulsa «Guardar todo en la nube».', 'ok');
+    } catch (e) {
+      show('statusLoad', '❌ El archivo no es válido: ' + e.message, 'err');
+    }
+    ev.target.value = '';
+  };
+  reader.readAsText(f, 'utf-8');
+}
+
+/* ---------------- Validación y guardado ---------------- */
+
+function validate(rows, throwers) {
+  var errs = [], warns = [];
+  var max = parseInt($('ecMax').value, 10) || 0;
+
+  var people = {};
+  rows.forEach(function (r) {
+    var k = r[1].toLowerCase();
+    people[k] = (people[k] || 0) + 1;
+    var a = parseInt(r[2], 10);
+    if (!(a > 0)) errs.push('El servicio «' + r[0] + '» de ' + r[1] + ' no tiene precio válido.');
+    else if (max && a > max) errs.push('El servicio «' + r[0] + '» de ' + r[1] + ' ($' + a + ') supera el máximo por transferencia ($' + max + ').');
+  });
+  var np = Object.keys(people).length;
+  if (np > KIOSK_SLOTS) errs.push('Hay ' + np + ' acompañantes; el kiosko solo tiene ' + KIOSK_SLOTS + ' botones.');
+  Object.keys(people).forEach(function (k) { if (people[k] > KIOSK_SLOTS) errs.push(k + ' tiene ' + people[k] + ' servicios; máximo ' + KIOSK_SLOTS + '.'); });
+
+  var tags = getTags();
+  if (tags.length > TAG_SLOTS) errs.push('Hay ' + tags.length + ' carteles; el mundo tiene ' + TAG_SLOTS + ' espacios.');
+  tags.forEach(function (t) { if (TAG_IMAGES.indexOf(t[1]) < 0) warns.push('La imagen «' + t[1] + '» de ' + t[0] + ' no existe en el mundo: se usará Staff.'); });
+
+  if (throwers.length > THROWER_POOLS) warns.push('Hay ' + throwers.length + ' lanzadores; solo los primeros ' + THROWER_POOLS + ' podrán lanzar (uno por pool).');
+  return { errs: errs, warns: warns };
+}
+
 function saveConfig() {
-  var rows = getPayments();
+  if (!PWD) { show('statusSave', 'Escribe la contraseña primero.', 'err'); $('adminPwd').focus(); return; }
+
+  var rows = getStaff();
+  var throwers = getList('throwWl');
+  var v = validate(rows, throwers);
+  if (v.errs.length) { show('statusSave', '❌ Corrige antes de guardar:\n• ' + v.errs.join('\n• '), 'err'); return; }
 
   var params = {
     action: 'set_config',
@@ -440,29 +597,37 @@ function saveConfig() {
     leaderboardDataVersion: $('ecVer').value,
     giftAmount: $('giftAmt').value,
     throwerAllowEveryone: $('throwEveryone').checked ? 'true' : 'false',
-    lb_names: getList('lbNames'),
-    lb_amounts: getList('lbAmts'),
-    gift_wl: getList('giftWl'),
-    throw_wl: getList('throwWl'),
+    lb_names: getList('lbNames').join('|'),
+    lb_amounts: getList('lbAmts').join('|'),
+    gift_wl: getList('giftWl').join('|'),
+    throw_wl: throwers.join('|'),
     pay_labels: rows.map(function (r) { return r[0]; }).join('|'),
     pay_recips: rows.map(function (r) { return r[1]; }).join('|'),
     pay_amts: rows.map(function (r) { return r[2]; }).join('|')
   };
-
+  // Carteles: solo si hay alguno en el panel (para no borrarlos por accidente)
+  var tags = getTags();
+  if (tags.length) {
+    params.tag_players = tags.map(function (t) { return t[0]; }).join('|');
+    params.tag_images = tags.map(function (t) { return t[1]; }).join('|');
+    params.tag_texts = tags.map(function (t) { return t[2]; }).join('|');
+  }
   show('statusSave', 'Guardando en la nube...', 'wait');
 
   var probe = API_URL + '?' + new URLSearchParams(Object.assign({}, params, { pwd: PWD })).toString();
-
-  var peticion = (probe.length < 6000)
-    ? apiGet(params)
-    : apiPost(params);
+  var peticion = (probe.length < 6000) ? apiGet(params) : apiPost(params);
 
   peticion.then(function (d) {
     if (d && d.ok === false) throw new Error(d.error || 'El backend rechazó los datos');
     setConn(true, 'conectado');
-    show('statusSave', '✅ Guardado. El mundo lo aplicará en el próximo ciclo (≤ 20 s).', 'ok');
+    var msg = '✅ Guardado.';
+    if (d && d.gist) msg += d.gist.published ? ' Publicado en el Gist.' : ' ⚠️ No se publicó en el Gist (' + (d.gist.reason || ('código ' + d.gist.code)) + ').';
+    if (d && d.unverified) msg += ' (Envío grande: se confirmará al recargar.)';
+    msg += '\nEl mundo lo aplica en la próxima descarga (al entrar o cada 10 min). GitHub puede tardar unos minutos.';
+    if (v.warns.length) msg += '\n⚠️ ' + v.warns.join('\n⚠️ ');
+    show('statusSave', msg, 'ok');
     log('OK set_config');
-    setTimeout(loadConfig, 1200);
+    setTimeout(loadConfig, 2500);
   }).catch(function (e) {
     show('statusSave', '❌ ' + e.message, 'err');
     log('ERROR set_config → ' + e.message);
@@ -470,26 +635,24 @@ function saveConfig() {
 }
 
 function loadEvents() {
+  if (!PWD) return;
   apiGet({ action: 'get_events' }).then(function (d) {
-    var el = $('eventsList');
+    var box = $('eventsList');
     var list = Array.isArray(d) ? d : (d && Array.isArray(d.events) ? d.events : null);
 
-    if (!list) { el.textContent = 'Sin eventos'; return; }
-    if (!list.length) { el.textContent = 'Aún no hay eventos registrados.'; return; }
+    if (!list) { box.textContent = 'Sin eventos'; return; }
+    if (!list.length) { box.textContent = 'Aún no hay eventos registrados.'; return; }
 
-    el.innerHTML = '';
+    box.innerHTML = '';
     list.slice(-15).reverse().forEach(function (e) {
-      var line = document.createElement('div');
       var ts = e.timestamp ? new Date(e.timestamp).toLocaleString() : '—';
-      line.textContent = ts + ' | ' + (e.player || '-') + ' | ' + (e.action || '-') + ' | $' + (e.amount || 0) + ' | ' + (e.detail || '');
-      el.appendChild(line);
+      box.appendChild(el('div', { textContent: ts + ' | ' + (e.player || '-') + ' | ' + (e.action || '-') + ' | $' + (e.amount || 0) + ' | ' + (e.detail || '') }));
     });
   }).catch(function (e) {
     $('eventsList').textContent = 'No se pudieron cargar eventos: ' + e.message;
   });
 }
 
-loadConfig();
 setInterval(loadEvents, 30000);
 </script>
 
