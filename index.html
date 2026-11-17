@@ -155,6 +155,23 @@ button.save { background: #22c55e; color: #fff; font-size: 1.1rem; padding: 12px
     </div>
   </div>
 
+  <div class="card">
+    <h2>🔐 Escáner de acceso (Permisos)</h2>
+    <p style="font-size:13px;opacity:.8;margin:4px 0 10px;">Nombres de VRChat exactos (no importan mayúsculas ni espacios). Se aplica en el mundo sin volver a subirlo.</p>
+    <label>Staff: usan el escáner y pasan siempre</label>
+    <div id="scanStaff"></div>
+    <div class="list">
+      <input type="text" id="scanStaffIn" placeholder="Nombre VRChat...">
+      <button class="add" onclick="addItem('scanStaff','scanStaffIn')">+</button>
+    </div>
+    <label>Acceso directo: pasan sin que los escaneen (VIP, amigos...)</label>
+    <div id="scanDirect"></div>
+    <div class="list">
+      <input type="text" id="scanDirectIn" placeholder="Nombre VRChat...">
+      <button class="add" onclick="addItem('scanDirect','scanDirectIn')">+</button>
+    </div>
+  </div>
+
   <div style="text-align:center;">
     <button class="save" onclick="saveConfig()">💾 Guardar todo en la nube</button>
     <button class="sec" onclick="loadEvents()">🔄 Ver eventos recientes</button>
@@ -346,11 +363,14 @@ function loadConfig() {
 
     renderStaff(splitList(d.pay_labels), splitList(d.pay_recips), splitList(d.pay_amts));
     renderTags(splitList(d.tag_players), splitList(d.tag_images), splitList(d.tag_texts));
+    renderList('scanStaff', splitList(d.scan_staff));
+    renderList('scanDirect', splitList(d.scan_direct));
 
     setConn(true, 'conectado');
     var extra = [];
     if (!d.pay_labels) extra.push('no hay servicios guardados');
     if (!d.tag_players) extra.push('no hay carteles guardados');
+    if (!d.scan_staff) extra.push('no hay permisos del escáner guardados');
     show('statusLoad', '✅ Configuración cargada desde la nube.' + (extra.length ? '\n⚠️ ' + extra.join(' y ') + ': usa «Importar datos de Venus» y luego «Guardar».' : ''), 'ok');
     log('OK get_config');
     loadEvents();
@@ -544,7 +564,12 @@ function importVenus(ev) {
         renderStaff(d.services.map(function (s) { return s.label; }), d.services.map(function (s) { return s.recipient; }), d.services.map(function (s) { return String(s.amount); }));
         parts.push(d.services.length + ' servicios');
       }
-      show('statusLoad', '✅ Importado: ' + parts.join(' y ') + '. Revisa y pulsa «Guardar todo en la nube».', 'ok');
+      if (Array.isArray(d.scanStaff)) {
+        renderList('scanStaff', d.scanStaff);
+        renderList('scanDirect', Array.isArray(d.scanDirect) ? d.scanDirect : []);
+        parts.push('permisos del escáner (' + d.scanStaff.length + ' staff, ' + (d.scanDirect || []).length + ' acceso directo)');
+      }
+      show('statusLoad', '✅ Importado: ' + parts.join(', ') + '. Revisa y pulsa «Guardar todo en la nube».', 'ok');
     } catch (e) {
       show('statusLoad', '❌ El archivo no es válido: ' + e.message, 'err');
     }
@@ -575,6 +600,7 @@ function validate(rows, throwers) {
   if (tags.length > TAG_SLOTS) errs.push('Hay ' + tags.length + ' carteles; el mundo tiene ' + TAG_SLOTS + ' espacios.');
   tags.forEach(function (t) { if (TAG_IMAGES.indexOf(t[1]) < 0) warns.push('La imagen «' + t[1] + '» de ' + t[0] + ' no existe en el mundo: se usará Staff.'); });
 
+  if (!getList('scanStaff').length) warns.push('La lista de staff del escáner está vacía: no se guardaron permisos del escáner (el mundo conserva los que ya tiene).');
   if (throwers.length > THROWER_POOLS) warns.push('Hay ' + throwers.length + ' lanzadores; solo los primeros ' + THROWER_POOLS + ' podrán lanzar (uno por pool).');
   return { errs: errs, warns: warns };
 }
@@ -611,6 +637,12 @@ function saveConfig() {
     params.tag_players = tags.map(function (t) { return t[0]; }).join('|');
     params.tag_images = tags.map(function (t) { return t[1]; }).join('|');
     params.tag_texts = tags.map(function (t) { return t[2]; }).join('|');
+  }
+  // Escáner: solo si hay staff (una lista vacía dejaría a nadie con acceso)
+  var scanStaff = getList('scanStaff');
+  if (scanStaff.length) {
+    params.scan_staff = scanStaff.join('|');
+    params.scan_direct = getList('scanDirect').join('|');
   }
   show('statusSave', 'Guardando en la nube...', 'wait');
 
